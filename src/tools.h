@@ -20,6 +20,9 @@ public:
   */
   Eigen::VectorXd CalculateRMSE(const std::vector<Eigen::VectorXd> &estimations, const std::vector<Eigen::VectorXd> &ground_truth);
 
+  //rmse storage
+  Eigen::VectorXd rmse;
+
 };
 
 #endif /* TOOLS_H_ */
