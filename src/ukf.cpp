@@ -61,12 +61,41 @@ UKF::~UKF() {}
  * either radar or laser.
  */
 void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
-  /**
-  TODO:
+    
+  if (!is_initialized_) {
 
-  Complete this function! Make sure you switch between lidar and radar
-  measurements.
-  */
+    // first measurement... we'll assume velocity, yaw_angle,
+    // and yaw_rate is 0 for start
+    cout << "UKF: " << endl;
+    x_ = VectorXd(5);
+    x_ << 1, 1, 0, 0, 0;
+    
+    //save timestamp
+    time_us_ = measurement_pack.timestamp_;
+
+    if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
+      
+      // Calculate x position
+      x_(0) = cos(fmod(measurement_pack.raw_measurements_(1), 2*3.1415926535897932))*measurement_pack.raw_measurements_(0);
+      
+      // Calculate y position
+      x_(1) = sin(fmod(measurement_pack.raw_measurements_(1), 2*3.1415926535897932))*measurement_pack.raw_measurements_(0);
+      
+    }
+    
+    else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
+		
+	  // Fill x position
+	  x_(0) = measurement_pack.raw_measurements_(0);
+      
+      // Fill y position
+	  x_(1) = measurement_pack.raw_measurements_(1);
+    }
+
+    // done initializing, no need to predict or update
+    is_initialized_ = true;
+    return;
+  }
 }
 
 /**
