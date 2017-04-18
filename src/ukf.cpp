@@ -71,25 +71,25 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     x_ << 1, 1, 0, 0, 0;
     
     //save timestamp
-    time_us_ = measurement_pack.timestamp_;
+    time_us_ = meas_package.timestamp_;
 
-    if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
+    if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
       
       // Calculate x position
-      x_(0) = cos(fmod(measurement_pack.raw_measurements_(1), 2*3.1415926535897932))*measurement_pack.raw_measurements_(0);
+      x_(0) = cos(fmod(meas_package.raw_measurements_(1), 2*3.1415926535897932))*meas_package.raw_measurements_(0);
       
       // Calculate y position
-      x_(1) = sin(fmod(measurement_pack.raw_measurements_(1), 2*3.1415926535897932))*measurement_pack.raw_measurements_(0);
+      x_(1) = sin(fmod(meas_package.raw_measurements_(1), 2*3.1415926535897932))*meas_package.raw_measurements_(0);
       
     }
     
-    else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
+    else if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
 		
 	  // Fill x position
-	  x_(0) = measurement_pack.raw_measurements_(0);
+	  x_(0) = meas_package.raw_measurements_(0);
       
       // Fill y position
-	  x_(1) = measurement_pack.raw_measurements_(1);
+	  x_(1) = meas_package.raw_measurements_(1);
     }
 
     // done initializing, no need to predict or update
