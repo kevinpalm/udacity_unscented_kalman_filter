@@ -65,7 +65,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   if (!is_initialized_) {
 
     // first measurement... we'll assume velocity, yaw_angle,
-    // and yaw_rate is 0 for start
+    // and yaw_rate are 0 for start
     cout << "UKF: " << endl;
     x_ = VectorXd(5);
     x_ << 1, 1, 0, 0, 0;
@@ -96,6 +96,26 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     is_initialized_ = true;
     return;
   }
+  
+  // Calculate the delta t and store old timestamp
+  double delta_t = (meas_package.timestamp_ - time_us_) / 1000000.0;
+  time_us_ = meas_package.timestamp_;
+  
+  // Predict
+  Prediction(delta_t);
+  
+  // Update
+  if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
+    
+    // Radar update
+    UpdateRadar(meas_package);
+    
+  } else {
+      
+      // Lidar update
+      UpdateLidar(meas_package);
+  }
+  
 }
 
 /**
