@@ -20,6 +20,15 @@ UKF::UKF() {
 
   // initial state vector
   x_ = VectorXd(5);
+  
+  // Save state dimension
+  n_x_ = x_.size();
+  
+  // Define spreading parameter for sigma points
+  lambda_ = 3 - n_x_;
+  
+  // Create sigma point matrix
+  Xsig_pred_ = MatrixXd(n_x_, 2 * n_x_ + 1);
 
   // initial covariance matrix
   P_ = MatrixXd(5, 5);
@@ -105,7 +114,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   Prediction(delta_t);
   
   // Update
-  if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
+  if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
     
     // Radar update
     UpdateRadar(meas_package);
@@ -115,7 +124,26 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
       // Lidar update
       UpdateLidar(meas_package);
   }
-  
+}
+
+  /**
+   * GenerateSigmaPoints is a helper function
+   * for predicting sigma points, with no parameters
+   */
+void UKF::GenerateSigmaPoints() {
+
+  //calculate square root of P
+  MatrixXd A = P_.llt().matrixL();
+
+  //set first column of sigma point matrix
+  Xsig_pred_.col(0)  = x_;
+
+  //set remaining sigma points
+  for (int i = 0; i < n_x_; i++)
+  {
+    Xsig_pred_.col(i+1)     = x_ + sqrt(lambda_+n_x_) * A.col(i);
+    Xsig_pred_.col(i+1+n_x_) = x_ - sqrt(lambda_+n_x_) * A.col(i);
+  }
 }
 
 /**
@@ -130,6 +158,11 @@ void UKF::Prediction(double delta_t) {
   Complete this function! Estimate the object's location. Modify the state
   vector, x_. Predict sigma points, the state, and the state covariance matrix.
   */
+  
+  // Create sigma points given the current state/covariance
+  GenerateSigmaPoints();
+  
+  
 }
 
 /**
