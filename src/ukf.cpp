@@ -12,6 +12,9 @@ using std::vector;
  * Initializes Unscented Kalman filter
  */
 UKF::UKF() {
+  // make sure we initialize
+  is_initialized_ = false;
+  
   // if this is false, laser measurements will be ignored (except during init)
   use_laser_ = true;
 
@@ -61,15 +64,18 @@ UKF::UKF() {
   weights_ = VectorXd(2*n_aug_+1);
 
   // set weights
-  double weight_0 = lambda_ / (lambda_ + n_aug_);
-  weights_(0) = weight_0;
+  weights_(0) = lambda_ / (lambda_ + n_aug_);
   for (int i=1; i<2*n_aug_+1; i++) {  //2n+1 weights
-    double weight = 0.5 / (n_aug_ + lambda_);
-    weights_(i) = weight;
+    weights_(i) = 0.5 / (n_aug_ + lambda_);
   }
   
   // Create predicted sigma point matrix
   Xsig_pred_ = MatrixXd(n_x_, 2 * n_aug_ + 1);
+  
+  //placeholders for nis calculations
+  NIS_radar_ = 0.;
+  NIS_laser_ = 0.;
+
 }
 
 UKF::~UKF() {}
@@ -82,8 +88,8 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     
   if (!is_initialized_) {
 
-    // first measurement... we'll assume velocity, yaw_angle,
-    // and yaw_rate are 0 for start
+    // first measurement... we'll assume velocity,
+    // yaw_angle, and yaw_rate are 0 for start
     cout << "UKF: " << endl;
     x_ = VectorXd(5);
     x_ << 1, 1, 0, 0, 0;
@@ -94,10 +100,10 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
       
       // Calculate x position
-      x_(0) = cos(fmod(meas_package.raw_measurements_(1), 2*3.1415926535897932))*meas_package.raw_measurements_(0);
+      x_(0) = cos(fmod(meas_package.raw_measurements_(1), 2*M_PI))*meas_package.raw_measurements_(0);
       
       // Calculate y position
-      x_(1) = sin(fmod(meas_package.raw_measurements_(1), 2*3.1415926535897932))*meas_package.raw_measurements_(0);
+      x_(1) = sin(fmod(meas_package.raw_measurements_(1), 2*M_PI))*meas_package.raw_measurements_(0);
       
     }
     
@@ -145,31 +151,36 @@ void UKF::Prediction(double delta_t) {
   /*********************************************************************
    * Augment sigma points
    ********************************************************************/
+   
+  cout << "augment" << endl;
 
-  //create augmented mean vector
+  cout << "create augmented mean vector" << endl;
   VectorXd x_aug = VectorXd(n_aug_);
 
-  //create augmented state covariance
+  cout << "create augmented state covariance" << endl;
   MatrixXd P_aug = MatrixXd(n_aug_, n_aug_);
 
-  //create sigma point matrix
+  cout << "create sigma point matrix" << endl;
   MatrixXd Xsig_aug = MatrixXd(n_aug_, 2 * n_aug_ + 1);
  
-  //fill augmented mean state
+  cout << "fill augmented mean state" << endl;
   x_aug.head(5) = x_;
   x_aug(5) = 0;
   x_aug(6) = 0;
 
-  //fill augmented covariance matrix
+  cout << "fill augmented covariance matrix" << endl;
   P_aug.fill(0.0);
   P_aug.topLeftCorner(5,5) = P_;
   P_aug(5,5) = std_a_*std_a_;
   P_aug(6,6) = std_yawdd_*std_yawdd_;
 
-  //create square root matrix
-  MatrixXd L = P_aug.llt().matrixL();
+  cout << "create square root matrix" << endl;
+  MatrixXd L(P_aug.llt().matrixL());
 
-  //fill augmented sigma points
+  
+  return;
+
+  cout << "fill augmented sigma points" << endl;
   Xsig_aug.col(0)  = x_aug;
   for (int i = 0; i< n_aug_; i++)
   {
@@ -180,7 +191,9 @@ void UKF::Prediction(double delta_t) {
   /*********************************************************************
    * Predict sigma points
    ********************************************************************/
-
+   
+   cout << "predict sigma" << endl;
+  
   //predict sigma points
   for (int i = 0; i< 2*n_aug_+1; i++)
   {
@@ -230,6 +243,8 @@ void UKF::Prediction(double delta_t) {
    * Predict mean and covariance
    ********************************************************************/
    
+  cout << "predict mean" << endl;
+  
   //predicted state mean
   x_.fill(0.0);
   for (int i = 0; i < 2 * n_aug_ + 1; i++) {  //iterate over sigma points
@@ -245,13 +260,13 @@ void UKF::Prediction(double delta_t) {
     
     //angle normalization... dealing with values greater or less than
     // 2pi/-2pi
-    while (x_diff(3)> M_PI) x_diff(3)-=2.*M_PI;
-    while (x_diff(3)<-M_PI) x_diff(3)+=2.*M_PI;
+    while (x_diff(3) > M_PI) x_diff(3)-=2.*M_PI;
+    while (x_diff(3) < -M_PI) x_diff(3)+=2.*M_PI;
 
     // set the values
     P_ = P_ + weights_(i) * x_diff * x_diff.transpose();
 
-  } 
+  }
 }
 
 /**
