@@ -38,6 +38,11 @@ UKF::UKF() {
 
   // initial covariance matrix
   P_ = MatrixXd(5, 5);
+  P_ << 10, 0, 0, 0, 0,
+        0, 10, 0, 0, 0,
+        0, 0, 10, 0, 0,
+        0, 0, 0, 10, 0,
+        0, 0, 0, 0, 10;
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
   std_a_ = 30;
@@ -151,36 +156,31 @@ void UKF::Prediction(double delta_t) {
   /*********************************************************************
    * Augment sigma points
    ********************************************************************/
-   
-  cout << "augment" << endl;
 
-  cout << "create augmented mean vector" << endl;
+  //create augmented mean vector
   VectorXd x_aug = VectorXd(n_aug_);
 
-  cout << "create augmented state covariance" << endl;
+  //create augmented state covariance
   MatrixXd P_aug = MatrixXd(n_aug_, n_aug_);
 
-  cout << "create sigma point matrix" << endl;
+  //create sigma point matrix
   MatrixXd Xsig_aug = MatrixXd(n_aug_, 2 * n_aug_ + 1);
  
-  cout << "fill augmented mean state" << endl;
+  //fill augmented mean state
   x_aug.head(5) = x_;
   x_aug(5) = 0;
   x_aug(6) = 0;
 
-  cout << "fill augmented covariance matrix" << endl;
+  //fill augmented covariance matrix
   P_aug.fill(0.0);
   P_aug.topLeftCorner(5,5) = P_;
   P_aug(5,5) = std_a_*std_a_;
   P_aug(6,6) = std_yawdd_*std_yawdd_;
 
-  cout << "create square root matrix" << endl;
-  MatrixXd L(P_aug.llt().matrixL());
+  //create square root matrix
+  MatrixXd L = P_aug.llt().matrixL();
 
-  
-  return;
-
-  cout << "fill augmented sigma points" << endl;
+  //fill augmented sigma points
   Xsig_aug.col(0)  = x_aug;
   for (int i = 0; i< n_aug_; i++)
   {
@@ -191,8 +191,6 @@ void UKF::Prediction(double delta_t) {
   /*********************************************************************
    * Predict sigma points
    ********************************************************************/
-   
-   cout << "predict sigma" << endl;
   
   //predict sigma points
   for (int i = 0; i< 2*n_aug_+1; i++)
@@ -242,8 +240,6 @@ void UKF::Prediction(double delta_t) {
   /*********************************************************************
    * Predict mean and covariance
    ********************************************************************/
-   
-  cout << "predict mean" << endl;
   
   //predicted state mean
   x_.fill(0.0);
