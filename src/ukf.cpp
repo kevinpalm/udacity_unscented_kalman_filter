@@ -38,17 +38,17 @@ UKF::UKF() {
 
   // initial covariance matrix
   P_ = MatrixXd(5, 5);
-  P_ << 10, 0, 0, 0, 0,
-        0, 10, 0, 0, 0,
-        0, 0, 10, 0, 0,
-        0, 0, 0, 10, 0,
-        0, 0, 0, 0, 10;
+  P_ << 2, 0, 0, 0, 0,
+        0, 4, 0, 0, 0,
+        0, 0, 1, 0, 0,
+        0, 0, 0, 0.5, 0,
+        0, 0, 0, 0, 0.5;
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 6;
+  std_a_ = 2.5;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 6;
+  std_yawdd_ = 0.5;
 
   // Laser measurement noise standard deviation position1 in m
   std_laspx_ = 0.15;
@@ -130,7 +130,13 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   double delta_t = (meas_package.timestamp_ - time_us_) / 1000000.0;
   time_us_ = meas_package.timestamp_;
   
-  // Predict
+  
+  // Using Wolfgang Steiner's quick fix for prediction stability
+  while (delta_t > 0.1) {
+	const double dt = 0.05;
+    Prediction(dt);
+    delta_t -= dt;
+    }
   Prediction(delta_t);
   
   // Update
@@ -388,9 +394,16 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
     double v2 = sin(yaw)*v;
 
     // measurement model
-    Zsig(0,i) = sqrt(p_x*p_x + p_y*p_y);                        //r
-    Zsig(1,i) = atan2(p_y,p_x);                                 //phi
-    Zsig(2,i) = (p_x*v1 + p_y*v2 ) / sqrt(p_x*p_x + p_y*p_y);   //r_dot
+    //using olliver and fido2478's suggestion to check for zero div
+    if (p_x == 0 && p_y == 0) {
+      Zsig(0,i) = 0;
+      Zsig(1,i) = 0;
+      Zsig(2,i) = 0;
+    } else {
+      Zsig(0,i) = sqrt(p_x*p_x + p_y*p_y);
+      Zsig(1,i) = atan2(p_y, p_x);
+      Zsig(2,i) = (p_x*v1 + p_y*v2)/sqrt(p_x*p_x + p_y*p_y);
+    }
   }
 
   //mean predicted measurement
